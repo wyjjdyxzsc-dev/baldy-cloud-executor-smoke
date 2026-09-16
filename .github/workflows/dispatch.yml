@@ -1,0 +1,48 @@
+name: Baldy Cloud Executor Smoke
+on:
+  workflow_dispatch:
+    inputs:
+      work_order_id:
+        description: Synthetic work order id (for evidence correlation only)
+        required: true
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify expected HEAD is reachable
+        run: git rev-parse HEAD
+
+      - name: Create isolated mission branch
+        run: |
+          BRANCH="mission/${{ github.event.inputs.work_order_id }}"
+          git checkout -b "$BRANCH"
+          echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"
+
+      - name: Modify test fixture (scripted, deterministic change — no LLM involved)
+        run: echo "counter=1" > fixture.txt
+
+      - name: Run tests
+        run: ./test_fixture.sh
+
+      - name: Commit
+        run: |
+          git config user.email "cloud-executor@baldy-switchboard.test"
+          git config user.name "Baldy Cloud Executor"
+          git add fixture.txt
+          git commit -m "09E smoke: cloud executor modified fixture for ${{ github.event.inputs.work_order_id }}"
+          echo "COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Push mission branch
+        run: git push origin "$BRANCH"
+
+      - name: Report evidence
+        run: |
+          echo "CLOUD_COMPUTE=PASS"
+          echo "CLOUD_GIT_EXECUTION=PASS"
+          echo "MAC_USED=NO"
+          echo "branch=$BRANCH"
+          echo "commit_sha=$COMMIT_SHA"
