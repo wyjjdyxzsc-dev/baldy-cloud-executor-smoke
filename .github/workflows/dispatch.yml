@@ -1,14 +1,17 @@
 name: Baldy Cloud Executor Smoke
 on:
+  push:
   workflow_dispatch:
     inputs:
       work_order_id:
-        description: Synthetic work order id (for evidence correlation only)
+        description:
+  push: Synthetic work order id (for evidence correlation only)
         required: true
 
 jobs:
   execute:
-    runs-on: ubuntu-latest
+    runs-on:
+  push: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
