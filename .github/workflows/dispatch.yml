@@ -8,6 +8,9 @@ on:
         description: Synthetic work order id (for evidence correlation only)
         required: true
 
+env:
+  SWITCHBOARD_URL: https://baldy-switchboard-api.wyjjdyxzsc.workers.dev
+
 jobs:
   execute:
     runs-on: ubuntu-latest
@@ -41,10 +44,18 @@ jobs:
       - name: Push mission branch
         run: git push origin "$BRANCH"
 
-      - name: Report evidence
+      - name: Report evidence to cloud control plane
+        if: always()
         run: |
-          echo "CLOUD_COMPUTE=PASS"
-          echo "CLOUD_GIT_EXECUTION=PASS"
-          echo "MAC_USED=NO"
-          echo "branch=$BRANCH"
-          echo "commit_sha=$COMMIT_SHA"
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS="COMPLETE"
+            RESULT="commit_sha=$COMMIT_SHA branch=$BRANCH mac_used=NO"
+          else
+            STATUS="FAILED"
+            RESULT="job did not complete successfully"
+          fi
+          curl -sf -X POST "$SWITCHBOARD_URL/api/workorders/${{ github.event.inputs.work_order_id }}/report" \
+            -H "Content-Type: application/json" \
+            -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
+            -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" \
+            -d "{\"status\":\"$STATUS\",\"result\":\"$RESULT\",\"checkpoint\":\"$COMMIT_SHA\"}"
