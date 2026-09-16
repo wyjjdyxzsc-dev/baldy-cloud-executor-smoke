@@ -1,4 +1,6 @@
 name: Baldy Cloud Executor Smoke
+permissions:
+  contents: write
 on:
   workflow_dispatch:
     inputs:
